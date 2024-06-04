@@ -24,6 +24,7 @@ from riche_questionnaire_back_end.decorators import (
 from constants import MEDIA_CONSTANTS
 from .db import get_db
 from fastapi import FastAPI
+from record_router import create_record, read_record  # абракадабра
 
 
 app = FastAPI(
@@ -41,6 +42,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# абракадабра
+
+# @app.post("/api/v1/record", response_model=dict)
+# async def create_record_route(data_in: DataIn):
+#     return await create_record(data_in)
+#
+# @app.get("/api/v1/record/{record_id}", response_model=DataIn)
+# async def read_record_route(record_id: str):
+#     return await read_record(record_id)
 
 
 @app.get("/")

@@ -21,6 +21,7 @@ class UserLogin(BaseModel):
     password: str
 
 
+
 @user_router.post("/register")
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     hashed_password = sha256_crypt.hash(user.password)

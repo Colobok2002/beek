@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import random
 
@@ -14,6 +15,15 @@ def gen_links(count=5):
 
 @form_router.post("/add")
 async def add_form(email: str, db: Session = Depends(get_db)):
+    """
+        Testst efwekfklweflwef
+    Args:
+        email:
+        db:
+
+    Returns:
+
+    """
     db_user = db.query(User).filter(User.email == email).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="User not found")
@@ -23,4 +33,7 @@ async def add_form(email: str, db: Session = Depends(get_db)):
     db.add(db_form)
     db.commit()
     db.refresh(db_form)
-    return {"url": db_form.url}
+    return JSONResponse(
+        status_code=200,
+        content={"url": db_form.url}
+    )
