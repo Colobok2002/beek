@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from riche_questionnaire_back_end.routers.users import user_router
 from riche_questionnaire_back_end.routers.forms import form_router
+from riche_questionnaire_back_end.routers.record import records_router
 from constants import MEDIA_CONSTANTS
 from sqlalchemy.orm import Session
 
@@ -24,7 +25,6 @@ from riche_questionnaire_back_end.decorators import (
 from constants import MEDIA_CONSTANTS
 from .db import get_db
 from fastapi import FastAPI
-from record_router import create_record, read_record  # абракадабра
 
 
 app = FastAPI(
@@ -87,6 +87,13 @@ app.include_router(
     apply_decorator_to_router(form_router, header_api_key_auth(_router="forms")),
     prefix="/api/v1/forms",
     tags=["forms"],
+)
+
+
+app.include_router(
+    apply_decorator_to_router(records_router, header_api_key_auth(_router="forms")),
+    prefix="/api/v1/records",
+    tags=["records"],
 )
 
 

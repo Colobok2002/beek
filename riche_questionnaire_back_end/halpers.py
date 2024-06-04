@@ -39,4 +39,5 @@ def decode_access_token(token):
 
 data_keys_Ayth = {
     "test_key": ["__all__"],
+    "test_ke2": ["users"],
 }
