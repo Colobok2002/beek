@@ -34,7 +34,7 @@ async def create_record(data_in: DataIn, db: Session = Depends(get_db)):
 
 
 @records_router.get("/read-record")
-async def read_record(record_id: str):
+async def read_record(record_id: str) -> DataIn:
     """_summary_
 
     Args:

@@ -24,6 +24,7 @@ from riche_questionnaire_back_end.decorators import (
 )
 from constants import MEDIA_CONSTANTS
 from .db import get_db
+from models.survey_models import get_customer_actions_with_question_and_answer  # абсолютный путь к файлу survey_models
 from fastapi import FastAPI
 
 
@@ -44,15 +45,12 @@ app.add_middleware(
 )
 
 
-# абракадабра
-
-# @app.post("/api/v1/record", response_model=dict)
-# async def create_record_route(data_in: DataIn):
-#     return await create_record(data_in)
-#
-# @app.get("/api/v1/record/{record_id}", response_model=DataIn)
-# async def read_record_route(record_id: str):
-#     return await read_record(record_id)
+# ниже метод для выполнения Join операции
+@app.get("/customer_actions_with_question_and_answer")
+async def get_customer_actions_with_question_and_answer_route(db: Session = Depends(get_db)):
+    customer_actions = get_customer_actions_with_question_and_answer(db)
+    return customer_actions
+# ======================================
 
 
 @app.get("/")
