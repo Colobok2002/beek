@@ -1,24 +1,25 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, BigInteger
 from sqlalchemy.orm import relationship
-from .db import Base
+from ..db import Base
+
 
 class CustomerAction(Base):
-    __tablename__ = 'customer_actions'
-    id = Column(Integer, primary_key=True, index=True)
-    # тут нужны поля для модели CustomerAction
+    __tablename__ = "survey_customer_actions"
+    id = Column(BigInteger, primary_key=True, index=True)
+    name = Column(Text)
+
 
 class Question(Base):
-    __tablename__ = 'questions'
-    id = Column(Integer, primary_key=True, index=True)
-    # тут нужны  поля для модели Question
+    __tablename__ = "survey_questions"
+    id = Column(BigInteger, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("survey_customer_actions.id"))
+    text = Column(Text)
+    ordering = Column(Integer)
+
 
 class AnswerOption(Base):
-    __tablename__ = 'answer_options'
-    id = Column(Integer, primary_key=True, index=True)
-    question_id = Column(Integer, ForeignKey('questions.id'))
-    # тут нужны поля для модели AnswerOption
-
-# ниже метод для выполнения JOIN операции между таблицами "customer actions", "question" и "answer option"
-def get_customer_actions_with_question_and_answer(session):
-    return session.query(CustomerAction).\
-        join(Question).join(AnswerOption).all()
+    __tablename__ = "survey_answer_options"
+    id = Column(BigInteger, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("survey_questions.id"))
+    text = Column(Text)
+    ordering = Column(Integer)
