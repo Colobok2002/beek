@@ -138,6 +138,28 @@ async def create_survey(survey: Survey, db: Session = Depends(get_db)):
     return JSONResponse(status_code=200, content={"id": new_survey.id})
 
 
+@records_router.get("/get-survey")
+async def create_survey(survey_id: int, db: Session = Depends(get_db)):
+    """Функция создания нового опроса
+
+    Args:
+        survey (Survey): _description_
+
+    Raises:
+        HTTPException: _description_
+
+    Returns:
+        int: id_new_surveu
+    """
+
+    survey_id = db.query(CustomerAction).get(survey_id)
+    if not (survey_id):
+        return JSONResponse(
+            status_code=200, content={"status": False, "message": "Опросник не найде"}
+        )
+    return JSONResponse(status_code=200, content={"status": True, "data": data})
+
+
 @records_router.get("/customer_actions_with_question_and_answer")
 async def get_customer_actions_with_question_and_answer_route(
     db: Session = Depends(get_db),
