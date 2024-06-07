@@ -105,6 +105,10 @@ async def create_survey(survey: Survey, db: Session = Depends(get_db)):
     Returns:
         int: id_new_surveu
     """
+
+    if survey.id:
+        # Сдесь логика измения текущийх данных у опросника
+        return JSONResponse(status_code=200, content={"change": True})
     survey_exists = (
         db.query(CustomerAction).filter(CustomerAction.name == survey.name).first()
     )
@@ -172,6 +176,3 @@ async def get_customer_actions_with_question_and_answer_route(
     )
 
     return JSONResponse(status_code=200, content={"customer_id": result.customer_id})
-
-
-# ======================================
