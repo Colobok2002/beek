@@ -107,7 +107,7 @@ async def create_survey(survey: Survey, db: Session = Depends(get_db)):
     """
 
     if survey.id:
-        # Сдесь логика измения текущийх данных у опросника
+        # Здесь логика изменения текущих данных у опросника
         return JSONResponse(status_code=200, content={"change": True})
     survey_exists = (
         db.query(CustomerAction).filter(CustomerAction.name == survey.name).first()
@@ -153,7 +153,7 @@ async def create_survey(survey_id: int, db: Session = Depends(get_db)):
         HTTPException: _description_
 
     Returns:
-        int: id_new_surveu
+        int: id_new_survey
     """
 
     survey_id = db.query(CustomerAction).get(survey_id)
@@ -176,3 +176,37 @@ async def get_customer_actions_with_question_and_answer_route(
     )
 
     return JSONResponse(status_code=200, content={"customer_id": result.customer_id})
+
+
+@records_router.get("/create-survey-from-db")
+async def create_survey_from_db(survey_id: int, db: Session = Depends(get_db)):
+    """Функция получения данных из базы и создания опросника по структуре"""
+
+    survey_data = db.query(CustomerAction).get(survey_id)
+    if not survey_data:
+        raise HTTPException(status_code=404, detail="Опросник не найден в базе данных")
+
+    survey_name = survey_data.name
+    survey_questions = db.query(Question).filter(Question.customer_id == survey_id).all()
+
+    survey_data_structure = {
+        "name": survey_name,
+        "id": survey_id,
+        "data": {}
+    }
+
+    for question in survey_questions:
+        answers = db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
+        answers_dict = {answer.ordering: answer.text for answer in answers}
+
+        survey_data_structure["data"][question.ordering] = {
+            "question": question.text,
+            "answers": answers_dict
+        }
+
+    # Логика проверки данных и обновления
+    if survey_data_structure["id"] is not None:
+
+        pass
+
+    return JSONResponse(status_code=200, content=survey_data_structure)
