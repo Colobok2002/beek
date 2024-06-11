@@ -13,7 +13,6 @@ from riche_questionnaire_back_end.models.survey_models import (
 )
 
 
-
 records_router = APIRouter()
 
 
@@ -42,32 +41,114 @@ data = {
 
 
 @records_router.post("/create-survey")
-async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db)):
-    """Функция создания нового опроса
+async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
+    """Функция создания нового опроса и проверка изменений"""
 
-    Args:
-        survey (Survey): _description_
-
-    Raises:
-        HTTPException: _description_
-
-    Returns:
-        int: id_new_surveu
-    """
-
+    # Если есть ID опроса, то обновляем существующий опрос
     if survey.id:
-        return JSONResponse(status_code=200, content={"change": True})
-    # survey_exists = (
-    #     db.query(CustomerAction).filter(CustomerAction.name == survey.name).first()
-    # )
-    # if survey_exists:
-    #     raise HTTPException(
-    #         status_code=400, detail="Survey with this name already exists"
-    #     )
+        existing_survey = db.query(CustomerAction).get(survey.id)
+        if existing_survey:
+            # Существующие вопросы для удаления тех, которые больше не нужны
+            existing_questions = db.query(Question).filter(Question.customer_id == survey.id).all()
+            existing_question_ids = {q.id for q in existing_questions}
 
+            # Новый набор вопросов
+            new_question_ids = set()
+
+            # Проверяем и обновляем вопросы
+            for question_order, question_data in survey.data.items():
+                if question_data.id:
+                    existing_question = db.query(Question).get(question_data.id)
+                    if existing_question:
+                        existing_question.text = question_data.question
+                        existing_question.ordering = question_order
+                        db.commit()
+                        new_question_ids.add(existing_question.id)
+                    else:
+                        # Создаем новый вопрос, если не найден
+                        new_question = Question(
+                            customer_id=existing_survey.id,
+                            text=question_data.question,
+                            ordering=question_order,
+                        )
+                        db.add(new_question)
+                        db.commit()
+                        db.refresh(new_question)
+                        question_data.id = new_question.id
+                        new_question_ids.add(new_question.id)
+                else:
+                    # Создаем новый вопрос, если ID нет
+                    new_question = Question(
+                        customer_id=existing_survey.id,
+                        text=question_data.question,
+                        ordering=question_order,
+                    )
+                    db.add(new_question)
+                    db.commit()
+                    db.refresh(new_question)
+                    question_data.id = new_question.id
+                    new_question_ids.add(new_question.id)
+
+                # Существующие ответы для удаления тех, которые больше не нужны
+                existing_answers = db.query(AnswerOption).filter(AnswerOption.question_id == question_data.id).all()
+                existing_answer_ids = {a.id for a in existing_answers}
+
+                # Новый набор ответов
+                new_answer_ids = set()
+
+                # Проверяем и обновляем варианты ответов
+                for ans_order, ans_data in question_data.answers.items():
+                    if ans_data.id:
+                        existing_answer = db.query(AnswerOption).get(ans_data.id)
+                        if existing_answer:
+                            existing_answer.text = ans_data.answer
+                            existing_answer.ordering = ans_order
+                            db.commit()
+                            new_answer_ids.add(existing_answer.id)
+                        else:
+                            # Создаем новый вариант ответа, если не найден
+                            new_answer = AnswerOption(
+                                question_id=question_data.id,
+                                text=ans_data.answer,
+                                ordering=ans_order,
+                            )
+                            db.add(new_answer)
+                            db.commit()
+                            db.refresh(new_answer)
+                            ans_data.id = new_answer.id
+                            new_answer_ids.add(new_answer.id)
+                    else:
+                        # Создаем новый вариант ответа, если ID нет
+                        new_answer = AnswerOption(
+                            question_id=question_data.id,
+                            text=ans_data.answer,
+                            ordering=ans_order,
+                        )
+                        db.add(new_answer)
+                        db.commit()
+                        db.refresh(new_answer)
+                        ans_data.id = new_answer.id
+                        new_answer_ids.add(new_answer.id)
+
+                # Удаление старых ответов, которые больше не нужны
+                for answer in existing_answers:
+                    if answer.id not in new_answer_ids:
+                        db.delete(answer)
+                        db.commit()
+
+            # Удаление старых вопросов, которые больше не нужны
+            for question in existing_questions:
+                if question.id not in new_question_ids:
+                    db.delete(question)
+                    db.commit()
+
+            return JSONResponse(status_code=200, content={"change": True})
+
+    # Если ID опроса нет, то создаем новый опрос
     new_survey = CustomerAction(name=survey.name)
     db.add(new_survey)
     db.commit()
+    db.refresh(new_survey)
 
     for question_order, question_data in survey.data.items():
         new_question = Question(
@@ -78,13 +159,18 @@ async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db
         db.add(new_question)
         db.commit()
         db.refresh(new_question)
+        question_data.id = new_question.id
 
-        for ans_order, ans_text in question_data.answers.items():
+        for ans_order, ans_data in question_data.answers.items():
             new_answer = AnswerOption(
-                question_id=new_question.id, text=ans_text, ordering=ans_order
+                question_id=new_question.id,
+                text=ans_data.answer,
+                ordering=ans_order,
             )
             db.add(new_answer)
             db.commit()
+            db.refresh(new_answer)
+            ans_data.id = new_answer.id
 
     return JSONResponse(status_code=200, content={"id": new_survey.id})
 
