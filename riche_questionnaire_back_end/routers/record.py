@@ -52,7 +52,7 @@ data = {
             },
         },
         "3": {
-            "question": "Новый выпрос",
+            "question": "Новый вопрос",
             "answers": {"1": {"answer": "М"}, "2": {"answer": "Ж"}},
         },
     },
@@ -188,24 +188,50 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     if not survey_data:
         raise HTTPException(status_code=404, detail="Опросник не найден в базе данных")
 
-    survey_questions = (
-        db.query(Question).filter(Question.customer_id == survey_id).all()
-    )
-
+    survey_questions = db.query(Question).filter(Question.customer_id == survey_id).all()
     survey_data_structure = {"name": survey_data.name, "id": survey_id, "data": {}}
 
     for question in survey_questions:
-        answers = (
-            db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
-        )
-        answers_dict = {answer.ordering: answer.text for answer in answers}
+        answers = db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
+        answers_dict = {answer.ordering: {"answer": answer.text, "id": answer.id} for answer in answers}
 
         survey_data_structure["data"][question.ordering] = {
+            "id": question.id,
             "question": question.text,
             "answers": answers_dict,
         }
 
-    if survey_data_structure["id"] is not None:
-        pass
-
     return JSONResponse(status_code=200, content=survey_data_structure)
+
+data = {
+    "name": "Тестовый опрос",
+    "id": 3,
+    "data": {
+        "1": {
+            "id": "1",
+            "question": "Укажите пол",
+            "answers": {
+                "1": {"answer": "М", "id": "1"},
+                "2": {"answer": "Ж", "id": "2"}
+            }
+        },
+        "2": {
+            "id": "2",
+            "question": "Назовите ваш имя (Изм вопрос)",
+            "answers": {
+                "1": {"answer": "Илья", "id": "3"},
+                "2": {"answer": "Вадим", "id": "4"},
+                "3": {"answer": "Миша", "id": "5"}
+            }
+        },
+        "3": {
+            "id": "3",
+            "question": "Новый вопрос",
+            "answers": {
+                "1": {"answer": "М", "id": "6"},
+                "2": {"answer": "Ж", "id": "7"}
+            }
+        }
+    }
+}
+
