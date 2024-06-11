@@ -17,15 +17,15 @@ records_router = APIRouter()
 
 
 class Answers(BaseModel):
-    # id: Optional[Union[int, str]] = None
+    id: Optional[Union[int, str]] = None
     answer: str
 
 
 class QuestionValid(BaseModel):
 
-    # id: Optional[Union[int, str]] = None
+    id: Optional[Union[int, str]] = None
     question: str
-    answers: Dict[int, str]
+    answers: Dict[int, Answers]
 
 
 class SurveyValid(BaseModel):
@@ -40,14 +40,21 @@ data = {
     "data": {
         "1": {
             "question": "Назовите ваш пол этот теперь первый",
-            "answers": {"1": "М", "2": "Ж"},
+            "answers": {"1": {"answer": "М"}, "2": {"answer": "Ж"}},
         },
         "2": {
             "id": 2,
             "question": "Назовите ваш имя (Изм вопрос)",
-            "answers": {"1": "Илья", "2": "Вадим", "3": "Миша"},
+            "answers": {
+                "1": {"answer": "Илья"},
+                "2": {"answer": "Вадим"},
+                "3": {"answer": "Миша"},
+            },
         },
-        "3": {"question": "Новый выпрос", "answers": {"1": "М", "2": "Ж"}},
+        "3": {
+            "question": "Новый выпрос",
+            "answers": {"1": {"answer": "М"}, "2": {"answer": "Ж"}},
+        },
     },
 }
 
@@ -72,16 +79,13 @@ async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db
             existing_questions = (
                 db.query(Question).filter(Question.customer_id == survey.id).all()
             )
-
             new_question_ids = set()
-
             for question_order, question_data in survey.data.items():
                 if question_data.id:
                     existing_question = db.query(Question).get(question_data.id)
                     if existing_question:
                         existing_question.text = question_data.question
                         existing_question.ordering = question_order
-                        db.commit()
                         new_question_ids.add(existing_question.id)
                     else:
                         new_question = Question(
