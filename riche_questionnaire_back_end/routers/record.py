@@ -60,19 +60,10 @@ data = {
 
 
 @records_router.post("/create-survey")
-async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db)):
-    """Функция создания нового опроса
+async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
+    """Функция создания нового опроса и проверка изменений"""
 
-    Args:
-        survey (Survey): _description_
-
-    Raises:
-        HTTPException: _description_
-
-    Returns:
-        int: id_new_surveu
-    """
-
+    # Если есть ID опроса, то обновляем существующий опрос
     if survey.id:
         existing_survey = db.query(CustomerAction).get(survey.id)
         if existing_survey:
@@ -162,6 +153,7 @@ async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db
     new_survey = CustomerAction(name=survey.name)
     db.add(new_survey)
     db.commit()
+    db.refresh(new_survey)
 
     for question_order, question_data in survey.data.items():
         new_question = Question(
@@ -172,13 +164,18 @@ async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db
         db.add(new_question)
         db.commit()
         db.refresh(new_question)
+        question_data.id = new_question.id
 
-        for ans_order, ans_text in question_data.answers.items():
+        for ans_order, ans_data in question_data.answers.items():
             new_answer = AnswerOption(
-                question_id=new_question.id, text=ans_text, ordering=ans_order
+                question_id=new_question.id,
+                text=ans_data.answer,
+                ordering=ans_order,
             )
             db.add(new_answer)
             db.commit()
+            db.refresh(new_answer)
+            ans_data.id = new_answer.id
 
     return JSONResponse(status_code=200, content={"id": new_survey.id})
 
