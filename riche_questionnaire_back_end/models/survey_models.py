@@ -30,3 +30,15 @@ class AnswerOption(Base):
     ordering = Column(Integer)
 
     question = relationship("Question", back_populates="answers")
+
+
+class SurveyResponse(Base):  # новинка
+    __tablename__ = "survey_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    response_uuid = Column(String, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"))
+    answer_option_id = Column(Integer, ForeignKey("answer_options.id"))
+
+    question = relationship("Question", back_populates="responses")
+    answer_option = relationship("AnswerOption", back_populates="responses")

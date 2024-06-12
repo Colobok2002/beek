@@ -4,6 +4,8 @@ from typing import Dict, Optional, Union
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from uuid import uuid4
+from fastapi import FastAPI
+from survey_models import SurveyResponse
 
 from riche_questionnaire_back_end.db import get_db
 from riche_questionnaire_back_end.models.survey_models import (
@@ -14,7 +16,7 @@ from riche_questionnaire_back_end.models.survey_models import (
 
 
 records_router = APIRouter()
-
+app = FastAPI()
 
 class Answers(BaseModel):
     id: Optional[Union[int, str]] = None
@@ -217,7 +219,7 @@ data = {
         },
         "2": {
             "id": "2",
-            "question": "Назовите ваш имя (Изм вопрос)",
+            "question": "Назовите ваше имя (Изм вопрос)",
             "answers": {
                 "1": {"answer": "Илья", "id": "3"},
                 "2": {"answer": "Вадим", "id": "4"},
@@ -234,4 +236,30 @@ data = {
         }
     }
 }
+
+@app.post("/submit-answers")  # новинка
+async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db)):
+    """Функция для приема и сохранения ответов на опрос"""
+
+    for answer in answer_data.answers:
+        question = db.query(Question).get(answer.question_id)
+        answer_option = db.query(AnswerOption).get(answer.answer_id)
+
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question ID {answer.question_id} not found")
+        if not answer_option:
+            raise HTTPException(status_code=404, detail=f"Answer Option ID {answer.answer_id} not found")
+
+        new_response = SurveyResponse(
+            response_uuid=answer_data.response_uuid,
+            question_id=answer.question_id,
+            answer_option_id=answer.answer_id
+        )
+        db.add(new_response)
+
+    db.commit()
+    return {"message": "Ответы успешно отправлены!"}
+
+
+
 
