@@ -11,12 +11,13 @@ from riche_questionnaire_back_end.models.survey_models import (
     AnswerOption,
     CustomerAction,
     Question,
-    SurveyResponse
+    SurveyResponse,
 )
 
 
 records_router = APIRouter()
 # app = FastAPI()
+
 
 class Answers(BaseModel):
     id: Optional[Union[int, str]] = None
@@ -200,12 +201,19 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     if not survey_data:
         raise HTTPException(status_code=404, detail="Опросник не найден в базе данных")
 
-    survey_questions = db.query(Question).filter(Question.customer_id == survey_id).all()
+    survey_questions = (
+        db.query(Question).filter(Question.customer_id == survey_id).all()
+    )
     survey_data_structure = {"name": survey_data.name, "id": survey_id, "data": {}}
 
     for question in survey_questions:
-        answers = db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
-        answers_dict = {answer.ordering: {"answer": answer.text, "id": answer.id} for answer in answers}
+        answers = (
+            db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
+        )
+        answers_dict = {
+            answer.ordering: {"answer": answer.text, "id": answer.id}
+            for answer in answers
+        }
 
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
@@ -215,6 +223,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
 
     return JSONResponse(status_code=200, content=survey_data_structure)
 
+
 data = {
     "name": "Тестовый опрос",
     "id": 3,
@@ -223,9 +232,9 @@ data = {
             "id": "1",
             "question": "Укажите пол",
             "answers": {
-                "1": {"answer": "М", "id": "1"},
-                "2": {"answer": "Ж", "id": "2"}
-            }
+                "1": {"answer": "М", "id": "1","selekted": False},
+                "2": {"answer": "Ж", "id": "2", "selekted": True},
+            },
         },
         "2": {
             "id": "2",
@@ -233,18 +242,18 @@ data = {
             "answers": {
                 "1": {"answer": "Илья", "id": "3"},
                 "2": {"answer": "Вадим", "id": "4"},
-                "3": {"answer": "Миша", "id": "5"}
-            }
+                "3": {"answer": "Миша", "id": "5"},
+            },
         },
         "3": {
             "id": "3",
             "question": "Новый вопрос",
             "answers": {
                 "1": {"answer": "М", "id": "6"},
-                "2": {"answer": "Ж", "id": "7"}
-            }
-        }
-    }
+                "2": {"answer": "Ж", "id": "7"},
+            },
+        },
+    },
 }
 
 
@@ -252,25 +261,43 @@ data = {
 async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db)):
     """Функция для приема и сохранения ответов на опрос"""
 
+    # dataAnsver = {
+    #     "answers": [{"QuestionID": "Айди вопроса", "AnswerId": "Id ответа"}],
+    #     "responsUUid": "Случайно генирируется во фронте",
+    # }
+
     for answer in answer_data.answers:
         question = db.query(Question).get(answer.question_id)
         answer_option = db.query(AnswerOption).get(answer.answer_id)
 
         if not question:
-            raise HTTPException(status_code=404, detail=f"Question ID {answer.question_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Question ID {answer.question_id} not found"
+            )
         if not answer_option:
-            raise HTTPException(status_code=404, detail=f"Answer Option ID {answer.answer_id} not found")
+            raise HTTPException(
+                status_code=404, detail=f"Answer Option ID {answer.answer_id} not found"
+            )
 
         new_response = SurveyResponse(
             response_uuid=answer_data.response_uuid,
             question_id=answer.question_id,
-            answer_option_id=answer.answer_id
+            answer_option_id=answer.answer_id,
         )
         db.add(new_response)
 
     db.commit()
-    return {"message": "Ответы успешно отправлены!"}
+    return JSONResponse(
+        status_code=200, content={"message": "Ответы успешно отправлены!"}
+    )
 
 
+@records_router.get("/get-answers")
+async def submit_answers(UUidAnsver: str, db: Session = Depends(get_db)):
 
-
+    ansvers = (
+        db.query(SurveyResponse)
+        .filter(SurveyResponse.response_uuid == UUidAnsver)
+        .all()
+    )
+    return JSONResponse(status_code=200, content={"data": []})
