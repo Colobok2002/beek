@@ -1,22 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+
 from uuid import uuid4
-from fastapi import FastAPI
-from survey_models import SurveyResponse
 
 from riche_questionnaire_back_end.db import get_db
 from riche_questionnaire_back_end.models.survey_models import (
     AnswerOption,
     CustomerAction,
     Question,
+    SurveyResponse
 )
 
 
 records_router = APIRouter()
-app = FastAPI()
+# app = FastAPI()
 
 class Answers(BaseModel):
     id: Optional[Union[int, str]] = None
@@ -34,6 +34,16 @@ class SurveyValid(BaseModel):
     name: str
     id: Optional[Union[int, str]] = None
     data: Dict[int, QuestionValid]
+
+
+class AnswerItem(BaseModel):
+    question_id: Union[int, str]
+    answer_id: Union[int, str]
+
+
+class AnswerData(BaseModel):
+    answers: List[AnswerItem]
+    response_uuid: str
 
 
 data = {
@@ -237,7 +247,8 @@ data = {
     }
 }
 
-@app.post("/submit-answers")  # новинка
+
+@records_router.post("/submit-answers")
 async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db)):
     """Функция для приема и сохранения ответов на опрос"""
 
