@@ -20,6 +20,7 @@ class Question(Base):
 
     customer_action = relationship("CustomerAction", back_populates="questions")
     answers = relationship("AnswerOption", back_populates="question")
+    responses = relationship("SurveyResponse", back_populates="question")
 
 
 class AnswerOption(Base):
@@ -30,15 +31,16 @@ class AnswerOption(Base):
     ordering = Column(Integer)
 
     question = relationship("Question", back_populates="answers")
+    responses = relationship("SurveyResponse", back_populates="answer_option")
 
 
-class SurveyResponse(Base):  # новинка
+class SurveyResponse(Base):
     __tablename__ = "survey_responses"
 
     id = Column(Integer, primary_key=True, index=True)
     response_uuid = Column(String, index=True)
-    question_id = Column(Integer, ForeignKey("questions.id"))
-    answer_option_id = Column(Integer, ForeignKey("answer_options.id"))
+    question_id = Column(Integer, ForeignKey("survey_questions.id"))
+    answer_option_id = Column(Integer, ForeignKey("survey_answer_options.id"))
 
     question = relationship("Question", back_populates="responses")
     answer_option = relationship("AnswerOption", back_populates="responses")

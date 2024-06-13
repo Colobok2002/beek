@@ -263,7 +263,7 @@ async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db))
 
     # dataAnsver = {
     #     "answers": [{"QuestionID": "Айди вопроса", "AnswerId": "Id ответа"}],
-    #     "responsUUid": "Случайно генирируется во фронте",
+    #     "responsUUid": "Случайно генерируется во фронте",
     # }
 
     for answer in answer_data.answers:
@@ -292,12 +292,69 @@ async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db))
     )
 
 
-@records_router.get("/get-answers")
-async def submit_answers(UUidAnsver: str, db: Session = Depends(get_db)):
+@records_router.get("/get-survey-with-answers")
+async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_db)):
+    """Функция получения данных опроса с ответами, включая отметку выбранных ответов"""
 
-    ansvers = (
-        db.query(SurveyResponse)
-        .filter(SurveyResponse.response_uuid == UUidAnsver)
-        .all()
-    )
-    return JSONResponse(status_code=200, content={"data": []})
+    # Пример структуры данных ответа:
+    # data = {
+    #     "name": "Тестовый опрос",
+    #     "id": 3,
+    #     "data": {
+    #         "1": {
+    #             "id": "1",
+    #             "question": "Укажите пол",
+    #             "answers": {
+    #                 "1": {"answer": "М", "id": "1", "selected": False},
+    #                 "2": {"answer": "Ж", "id": "2", "selected": True},
+    #             },
+    #         },
+    #         "2": {
+    #             "id": "2",
+    #             "question": "Назовите ваше имя (Изм вопрос)",
+    #             "answers": {
+    #                 "1": {"answer": "Илья", "id": "3", "selected": False},
+    #                 "2": {"answer": "Вадим", "id": "4", "selected": False},
+    #                 "3": {"answer": "Миша", "id": "5", "selected": False},
+    #             },
+    #         },
+    #         "3": {
+    #             "id": "3",
+    #             "question": "Новый вопрос",
+    #             "answers": {
+    #                 "1": {"answer": "М", "id": "6", "selected": False},
+    #                 "2": {"answer": "Ж", "id": "7", "selected": False},
+    #             },
+    #         },
+    #     },
+    # }
+
+    responses = db.query(SurveyResponse).filter(SurveyResponse.response_uuid == response_uuid).all()
+    if not responses:
+        raise HTTPException(status_code=404, detail="Ответы не найдены для данного UUID")
+
+    survey_id = responses[0].question.customer_action.id
+    survey_data = db.query(CustomerAction).get(survey_id)
+    if not survey_data:
+        raise HTTPException(status_code=404, detail="Опросник не найден в базе данных")
+
+    survey_questions = db.query(Question).filter(Question.customer_id == survey_id).all()
+    survey_data_structure = {"name": survey_data.name, "id": survey_id, "data": {}}
+
+    for question in survey_questions:
+        answers = db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
+        answers_dict = {
+            answer.ordering: {
+                "answer": answer.text,
+                "id": answer.id,
+                "selected": any(resp.answer_option_id == answer.id for resp in responses)
+            } for answer in answers
+        }
+
+        survey_data_structure["data"][question.ordering] = {
+            "id": question.id,
+            "question": question.text,
+            "answers": answers_dict,
+        }
+
+    return JSONResponse(status_code=200, content=survey_data_structure)
