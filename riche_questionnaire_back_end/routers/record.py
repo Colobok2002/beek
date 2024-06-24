@@ -81,7 +81,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
         existing_survey = db.query(CustomerAction).get(survey.id)
         if existing_survey:
             existing_survey.name = survey.name
-            existing_survey.type = survey.type
+            existing_survey._type = survey
             db.commit()
 
             existing_questions = (
@@ -167,7 +167,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
             db.commit()
             return JSONResponse(status_code=200, content={"change": True})
 
-    new_survey = CustomerAction(name=survey.name, type=survey.type)
+    new_survey = CustomerAction(name=survey.name, _type=survey.type)
     db.add(new_survey)
     db.commit()
     db.refresh(new_survey)
@@ -211,8 +211,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     survey_data_structure = {
         "name": survey_data.name,
         "id": survey_id,
-        "type": survey_data.type,
-        "data": {}
+        "data": {},
     }
 
     for question in survey_questions:
@@ -226,6 +225,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
 
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
+            "type": question._type,
             "question": question.text,
             "answers": answers_dict,
         }
@@ -338,31 +338,45 @@ async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_
     #     },
     # }
 
-    responses = db.query(SurveyResponse).filter(SurveyResponse.response_uuid == response_uuid).all()
+    responses = (
+        db.query(SurveyResponse)
+        .filter(SurveyResponse.response_uuid == response_uuid)
+        .all()
+    )
     if not responses:
-        raise HTTPException(status_code=404, detail="Ответы не найдены для данного UUID")
+        raise HTTPException(
+            status_code=404, detail="Ответы не найдены для данного UUID"
+        )
 
     survey_id = responses[0].question.customer_action.id
     survey_data = db.query(CustomerAction).get(survey_id)
     if not survey_data:
         raise HTTPException(status_code=404, detail="Опросник не найден в базе данных")
 
-    survey_questions = db.query(Question).filter(Question.customer_id == survey_id).all()
+    survey_questions = (
+        db.query(Question).filter(Question.customer_id == survey_id).all()
+    )
     survey_data_structure = {"name": survey_data.name, "id": survey_id, "data": {}}
 
     for question in survey_questions:
-        answers = db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
+        answers = (
+            db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
+        )
         answers_dict = {
             answer.ordering: {
                 "answer": answer.text,
                 "id": answer.id,
-                "selected": any(resp.answer_option_id == answer.id for resp in responses)
-            } for answer in answers
+                "selected": any(
+                    resp.answer_option_id == answer.id for resp in responses
+                ),
+            }
+            for answer in answers
         }
 
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
             "question": question.text,
+            "type": question._type,
             "answers": answers_dict,
         }
 

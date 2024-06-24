@@ -7,8 +7,6 @@ class CustomerAction(Base):
     __tablename__ = "survey_customer_actions"
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(Text)
-    type = Column(String, index=True)
-
     questions = relationship("Question", back_populates="customer_action")
 
 
@@ -18,6 +16,7 @@ class Question(Base):
     customer_id = Column(Integer, ForeignKey("survey_customer_actions.id"))
     text = Column(Text)
     ordering = Column(Integer)
+    _type = Column(String, index=True)
 
     customer_action = relationship("CustomerAction", back_populates="questions")
     answers = relationship("AnswerOption", back_populates="question")
