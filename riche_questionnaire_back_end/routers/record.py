@@ -28,14 +28,14 @@ class QuestionValid(BaseModel):  # Вопрос действителен
 
     id: Optional[Union[int, str]] = None
     question: str
-    _type: str
+    question_type: str
     answers: Dict[int, Answers]
 
 
 class SurveyValid(BaseModel):  # Опрос действителен
     name: str
     id: Optional[Union[int, str]] = None
-    type: str
+
     data: Dict[int, QuestionValid]
 
 
@@ -51,15 +51,17 @@ class AnswerData(BaseModel):  # Данные об ответах
 
 data = {
     "name": "Тестовый опрос",
-    "id": 3,
+    # "id": 3,
     "data": {
         "1": {
             "question": "Назовите ваш пол этот теперь первый",
+            "question_type": "single",
             "answers": {"1": {"answer": "М"}, "2": {"answer": "Ж"}},
         },
         "2": {
             "id": 2,
             "question": "Назовите ваш имя (Изм вопрос)",
+            "question_type": "single",
             "answers": {
                 "1": {"answer": "Илья"},
                 "2": {"answer": "Вадим"},
@@ -68,6 +70,7 @@ data = {
         },
         "3": {
             "question": "Новый вопрос",
+            "question_type": "single",
             "answers": {"1": {"answer": "М"}, "2": {"answer": "Ж"}},
         },
     },
@@ -75,14 +78,13 @@ data = {
 
 
 @records_router.post("/create-survey")
-async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
+async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db)):
     """Функция создания нового опроса и проверка изменений"""
 
     if survey.id:
         existing_survey = db.query(CustomerAction).get(survey.id)
         if existing_survey:
             existing_survey.name = survey.name
-            existing_survey._type = survey._type
             db.commit()
 
             existing_questions = (
@@ -95,14 +97,13 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
                     if existing_question:
                         existing_question.text = question_data.question
                         existing_question.ordering = question_order
-                        existing_question._type = question_data
                         new_question_ids.add(existing_question.id)
                     else:
                         new_question = Question(
                             customer_id=existing_survey.id,
                             text=question_data.question,
                             ordering=question_order,
-                            _type=question_data._type,
+                            question_type=question_data.question_type,
                         )
                         db.add(new_question)
                         db.commit()
@@ -114,7 +115,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
                         customer_id=existing_survey.id,
                         text=question_data.question,
                         ordering=question_order,
-                        _type=question_data._type,
+                        question_type=question_data.question_type,
                     )
                     db.add(new_question)
                     db.commit()
@@ -171,7 +172,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
             db.commit()
             return JSONResponse(status_code=200, content={"change": True})
 
-    new_survey = CustomerAction(name=survey.name, _type=survey._type)
+    new_survey = CustomerAction(name=survey.name)
     db.add(new_survey)
     db.commit()
     db.refresh(new_survey)
@@ -181,7 +182,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
             customer_id=new_survey.id,
             text=question_data.question,
             ordering=question_order,
-            _type=question_data._type,
+            question_type=question_data.question_type,
         )
         db.add(new_question)
         db.commit()
@@ -230,7 +231,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
 
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
-            "type": question._type,
+            "type": question.question_type,
             "question": question.text,
             "answers": answers_dict,
         }
@@ -381,7 +382,7 @@ async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
             "question": question.text,
-            "type": question._type,
+            "type": question.question_type,
             "answers": answers_dict,
         }
 

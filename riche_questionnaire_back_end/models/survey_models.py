@@ -16,7 +16,7 @@ class Question(Base):  # Вопрос
     customer_id = Column(Integer, ForeignKey("survey_customer_actions.id"))
     text = Column(Text)
     ordering = Column(Integer)
-    _type = Column(String, index=True)
+    question_type = Column(String, index=True)
 
     customer_action = relationship("CustomerAction", back_populates="questions")
     answers = relationship("AnswerOption", back_populates="question")
