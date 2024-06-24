@@ -34,6 +34,7 @@ class QuestionValid(BaseModel):
 class SurveyValid(BaseModel):
     name: str
     id: Optional[Union[int, str]] = None
+    type: str
     data: Dict[int, QuestionValid]
 
 
@@ -76,10 +77,13 @@ data = {
 async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
     """Функция создания нового опроса и проверка изменений"""
 
-    # Если есть ID опроса, то обновляем существующий опрос
     if survey.id:
         existing_survey = db.query(CustomerAction).get(survey.id)
         if existing_survey:
+            existing_survey.name = survey.name
+            existing_survey.type = survey.type
+            db.commit()
+
             existing_questions = (
                 db.query(Question).filter(Question.customer_id == survey.id).all()
             )
@@ -163,7 +167,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
             db.commit()
             return JSONResponse(status_code=200, content={"change": True})
 
-    new_survey = CustomerAction(name=survey.name)
+    new_survey = CustomerAction(name=survey.name, type=survey.type)
     db.add(new_survey)
     db.commit()
     db.refresh(new_survey)
@@ -204,7 +208,12 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     survey_questions = (
         db.query(Question).filter(Question.customer_id == survey_id).all()
     )
-    survey_data_structure = {"name": survey_data.name, "id": survey_id, "data": {}}
+    survey_data_structure = {
+        "name": survey_data.name,
+        "id": survey_id,
+        "type": survey_data.type,
+        "data": {}
+    }
 
     for question in survey_questions:
         answers = (
@@ -232,7 +241,7 @@ data = {
             "id": "1",
             "question": "Укажите пол",
             "answers": {
-                "1": {"answer": "М", "id": "1","selekted": False},
+                "1": {"answer": "М", "id": "1", "selekted": False},
                 "2": {"answer": "Ж", "id": "2", "selekted": True},
             },
         },

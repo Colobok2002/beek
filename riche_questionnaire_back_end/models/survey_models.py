@@ -7,6 +7,7 @@ class CustomerAction(Base):
     __tablename__ = "survey_customer_actions"
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(Text)
+    type = Column(String, index=True)
 
     questions = relationship("Question", back_populates="customer_action")
 
