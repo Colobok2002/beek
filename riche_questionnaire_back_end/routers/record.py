@@ -231,7 +231,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
 
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
-            "type": question.question_type,
+            "question_type": question.question_type,
             "question": question.text,
             "answers": answers_dict,
         }
@@ -382,7 +382,7 @@ async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_
         survey_data_structure["data"][question.ordering] = {
             "id": question.id,
             "question": question.text,
-            "type": question.question_type,
+            "question_type": question.question_type,
             "answers": answers_dict,
         }
 
