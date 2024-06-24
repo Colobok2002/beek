@@ -19,31 +19,32 @@ records_router = APIRouter()
 # app = FastAPI()
 
 
-class Answers(BaseModel):
+class Answers(BaseModel):  # Ответы
     id: Optional[Union[int, str]] = None
     answer: str
 
 
-class QuestionValid(BaseModel):
+class QuestionValid(BaseModel):  # Вопрос действителен
 
     id: Optional[Union[int, str]] = None
     question: str
+    _type: str
     answers: Dict[int, Answers]
 
 
-class SurveyValid(BaseModel):
+class SurveyValid(BaseModel):  # Опрос действителен
     name: str
     id: Optional[Union[int, str]] = None
     type: str
     data: Dict[int, QuestionValid]
 
 
-class AnswerItem(BaseModel):
+class AnswerItem(BaseModel):  # Элемент ответа
     question_id: Union[int, str]
     answer_id: Union[int, str]
 
 
-class AnswerData(BaseModel):
+class AnswerData(BaseModel):  # Данные об ответах
     answers: List[AnswerItem]
     response_uuid: str
 
@@ -81,7 +82,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
         existing_survey = db.query(CustomerAction).get(survey.id)
         if existing_survey:
             existing_survey.name = survey.name
-            existing_survey._type = survey
+            existing_survey._type = survey._type
             db.commit()
 
             existing_questions = (
@@ -94,12 +95,14 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
                     if existing_question:
                         existing_question.text = question_data.question
                         existing_question.ordering = question_order
+                        existing_question._type = question_data
                         new_question_ids.add(existing_question.id)
                     else:
                         new_question = Question(
                             customer_id=existing_survey.id,
                             text=question_data.question,
                             ordering=question_order,
+                            _type=question_data._type,
                         )
                         db.add(new_question)
                         db.commit()
@@ -111,6 +114,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
                         customer_id=existing_survey.id,
                         text=question_data.question,
                         ordering=question_order,
+                        _type=question_data._type,
                     )
                     db.add(new_question)
                     db.commit()
@@ -167,7 +171,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
             db.commit()
             return JSONResponse(status_code=200, content={"change": True})
 
-    new_survey = CustomerAction(name=survey.name, _type=survey.type)
+    new_survey = CustomerAction(name=survey.name, _type=survey._type)
     db.add(new_survey)
     db.commit()
     db.refresh(new_survey)
@@ -177,6 +181,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
             customer_id=new_survey.id,
             text=question_data.question,
             ordering=question_order,
+            _type=question_data._type,
         )
         db.add(new_question)
         db.commit()

@@ -3,14 +3,14 @@ from sqlalchemy.orm import relationship
 from ..db import Base
 
 
-class CustomerAction(Base):
+class CustomerAction(Base):  # Взаимодействие с клиентом
     __tablename__ = "survey_customer_actions"
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(Text)
     questions = relationship("Question", back_populates="customer_action")
 
 
-class Question(Base):
+class Question(Base):  # Вопрос
     __tablename__ = "survey_questions"
     id = Column(BigInteger, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("survey_customer_actions.id"))
@@ -23,7 +23,7 @@ class Question(Base):
     responses = relationship("SurveyResponse", back_populates="question")
 
 
-class AnswerOption(Base):
+class AnswerOption(Base):  # Вариант ответа
     __tablename__ = "survey_answer_options"
     id = Column(BigInteger, primary_key=True, index=True)
     question_id = Column(Integer, ForeignKey("survey_questions.id"))
@@ -34,7 +34,7 @@ class AnswerOption(Base):
     responses = relationship("SurveyResponse", back_populates="answer_option")
 
 
-class SurveyResponse(Base):
+class SurveyResponse(Base):  # Ответ на опрос
     __tablename__ = "survey_responses"
 
     id = Column(Integer, primary_key=True, index=True)
