@@ -19,39 +19,36 @@ records_router = APIRouter()
 # app = FastAPI()
 
 
-class Answers(BaseModel):  # Ответы
+class Answers(BaseModel):
     id: Optional[Union[int, str]] = None
     answer: str
 
 
-class QuestionValid(BaseModel):  # Вопрос действителен
-
+class QuestionValid(BaseModel):
     id: Optional[Union[int, str]] = None
     question: str
     question_type: str
     answers: Dict[int, Answers]
 
 
-class SurveyValid(BaseModel):  # Опрос действителен
+class SurveyValid(BaseModel):
     name: str
     id: Optional[Union[int, str]] = None
-
     data: Dict[int, QuestionValid]
 
 
-class AnswerItem(BaseModel):  # Элемент ответа
+class AnswerItem(BaseModel):
     question_id: Union[int, str]
     answer_id: Union[int, str]
 
 
-class AnswerData(BaseModel):  # Данные об ответах
+class AnswerData(BaseModel):
     answers: List[AnswerItem]
     response_uuid: str
 
 
 data = {
     "name": "Тестовый опрос",
-    # "id": 3,
     "data": {
         "1": {
             "question": "Назовите ваш пол этот теперь первый",
@@ -78,7 +75,7 @@ data = {
 
 
 @records_router.post("/create-survey")
-async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db)):
+async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
     """Функция создания нового опроса и проверка изменений"""
 
     if survey.id:
@@ -97,6 +94,7 @@ async def create_survey(survey: SurveyValid = data, db: Session = Depends(get_db
                     if existing_question:
                         existing_question.text = question_data.question
                         existing_question.ordering = question_order
+                        existing_question.question_type = question_data.question_type
                         new_question_ids.add(existing_question.id)
                     else:
                         new_question = Question(
@@ -211,9 +209,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     if not survey_data:
         raise HTTPException(status_code=404, detail="Опросник не найден в базе данных")
 
-    survey_questions = (
-        db.query(Question).filter(Question.customer_id == survey_id).all()
-    )
+    survey_questions = db.query(Question).filter(Question.customer_id == survey_id).all()
     survey_data_structure = {
         "name": survey_data.name,
         "id": survey_id,
@@ -221,9 +217,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     }
 
     for question in survey_questions:
-        answers = (
-            db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
-        )
+        answers = db.query(AnswerOption).filter(AnswerOption.question_id == question.id).all()
         answers_dict = {
             answer.ordering: {"answer": answer.text, "id": answer.id}
             for answer in answers
@@ -239,6 +233,14 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     return JSONResponse(status_code=200, content=survey_data_structure)
 
 
+@records_router.get("/get-all-surveys")
+async def get_all_surveys(db: Session = Depends(get_db)):
+    """Функция получения списка всех опросов"""
+    surveys = db.query(CustomerAction).all()
+    survey_list = [{"id": survey.id, "name": survey.name} for survey in surveys]
+    return JSONResponse(status_code=200, content=survey_list)
+
+
 data = {
     "name": "Тестовый опрос",
     "id": 3,
@@ -247,8 +249,8 @@ data = {
             "id": "1",
             "question": "Укажите пол",
             "answers": {
-                "1": {"answer": "М", "id": "1", "selekted": False},
-                "2": {"answer": "Ж", "id": "2", "selekted": True},
+                "1": {"answer": "М", "id": "1", "selected": False},
+                "2": {"answer": "Ж", "id": "2", "selected": True},
             },
         },
         "2": {
@@ -275,11 +277,6 @@ data = {
 @records_router.post("/submit-answers")
 async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db)):
     """Функция для приема и сохранения ответов на опрос"""
-
-    # dataAnsver = {
-    #     "answers": [{"QuestionID": "Айди вопроса", "AnswerId": "Id ответа"}],
-    #     "responsUUid": "Случайно генерируется во фронте",
-    # }
 
     for answer in answer_data.answers:
         question = db.query(Question).get(answer.question_id)
@@ -310,39 +307,6 @@ async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db))
 @records_router.get("/get-survey-with-answers")
 async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_db)):
     """Функция получения данных опроса с ответами, включая отметку выбранных ответов"""
-
-    # Пример структуры данных ответа:
-    # data = {
-    #     "name": "Тестовый опрос",
-    #     "id": 3,
-    #     "data": {
-    #         "1": {
-    #             "id": "1",
-    #             "question": "Укажите пол",
-    #             "answers": {
-    #                 "1": {"answer": "М", "id": "1", "selected": False},
-    #                 "2": {"answer": "Ж", "id": "2", "selected": True},
-    #             },
-    #         },
-    #         "2": {
-    #             "id": "2",
-    #             "question": "Назовите ваше имя (Изм вопрос)",
-    #             "answers": {
-    #                 "1": {"answer": "Илья", "id": "3", "selected": False},
-    #                 "2": {"answer": "Вадим", "id": "4", "selected": False},
-    #                 "3": {"answer": "Миша", "id": "5", "selected": False},
-    #             },
-    #         },
-    #         "3": {
-    #             "id": "3",
-    #             "question": "Новый вопрос",
-    #             "answers": {
-    #                 "1": {"answer": "М", "id": "6", "selected": False},
-    #                 "2": {"answer": "Ж", "id": "7", "selected": False},
-    #             },
-    #         },
-    #     },
-    # }
 
     responses = (
         db.query(SurveyResponse)
