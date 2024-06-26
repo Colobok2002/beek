@@ -4,7 +4,6 @@ from ..db import Base
 from passlib.hash import sha256_crypt
 
 
-
 class User(Base):
     """Модель пользователя"""
 

@@ -74,7 +74,7 @@ data = {
 }
 
 
-@records_router.post("/create-survey")
+@records_router.post("/create-survey")  # создать-опрос
 async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
     """Функция создания нового опроса и проверка изменений"""
 
@@ -201,7 +201,7 @@ async def create_survey(survey: SurveyValid, db: Session = Depends(get_db)):
     return JSONResponse(status_code=200, content={"id": new_survey.id})
 
 
-@records_router.get("/get-survey")
+@records_router.get("/get-survey")  # получить-опрос
 async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     """Функция получения данных из базы и создания опросника по структуре"""
 
@@ -233,7 +233,7 @@ async def get_survey(survey_id: int, db: Session = Depends(get_db)):
     return JSONResponse(status_code=200, content=survey_data_structure)
 
 
-@records_router.get("/get-all-surveys")
+@records_router.get("/get-all-surveys")  # получить все опросы
 async def get_all_surveys(db: Session = Depends(get_db)):
     """Функция получения списка всех опросов"""
     surveys = db.query(CustomerAction).all()
@@ -274,7 +274,7 @@ data = {
 }
 
 
-@records_router.post("/submit-answers")
+@records_router.post("/submit-answers")  # отправить-ответы
 async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db)):
     """Функция для приема и сохранения ответов на опрос"""
 
@@ -304,7 +304,7 @@ async def submit_answers(answer_data: AnswerData, db: Session = Depends(get_db))
     )
 
 
-@records_router.get("/get-survey-with-answers")
+@records_router.get("/get-survey-with-answers")  # получить-опрос-с-ответами
 async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_db)):
     """Функция получения данных опроса с ответами, включая отметку выбранных ответов"""
 
@@ -351,3 +351,28 @@ async def get_survey_with_answers(response_uuid: str, db: Session = Depends(get_
         }
 
     return JSONResponse(status_code=200, content=survey_data_structure)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
