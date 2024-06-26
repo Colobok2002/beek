@@ -1,9 +1,7 @@
 from sqlalchemy import Column, BigInteger, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from ..db import Base
 from passlib.hash import sha256_crypt
-
-Base = declarative_base()
 
 
 class User(Base):
